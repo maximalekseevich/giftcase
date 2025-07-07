@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Звездный Кейс</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+        .reveal {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center min-h-screen p-4">
+    <div class="w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center mb-4">Звездный Кейс</h1>
+        <div id="user-info" class="mb-4">
+            <p>Звезды: <span id="star-balance">1000</span></p>
+        </div>
+
+        <!-- Навигация -->
+        <div class="flex justify-around mb-4">
+            <button id="show-cases" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Кейсы
+            </button>
+            <button id="show-inventory" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Инвентарь
+            </button>
+        </div>
+
+        <!-- Секция открытия кейсов -->
+        <div id="cases-section" class="bg-gray-800 p-4 rounded-lg mb-4">
+            <h2 class="text-xl font-semibold mb-2">Открыть кейс</h2>
+            <div id="case-selection" class="mb-4 grid grid-cols-1 gap-2">
+                <button id="open-beginner-case" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Кейс Новичка (50 звезд)
+                </button>
+                <button id="open-amateur-case" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Кейс Любителя (150 звезд)
+                </button>
+                <button id="open-pro-case" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Кейс Профессионала (500 звезд)
+                </button>
+                <button id="open-legend-case" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Кейс Легенды (2000 звезд)
+                </button>
+            </div>
+            <div id="case-animation" class="hidden flex justify-center items-center h-32">
+                <img src="https://via.placeholder.com/100?text=Кейс" alt="Кейс" class="spinning w-24 h-24">
+            </div>
+            <div id="case-result" class="hidden text-center">
+                <img id="result-image" src="" alt="Результат" class="mx-auto w-24 h-24 mb-2 reveal">
+                <p id="result-text" class="text-lg"></p>
+            </div>
+        </div>
+
+        <!-- Секция инвентаря -->
+        <div id="inventory-section" class="hidden bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-semibold mb-2">Ваш инвентарь</h2>
+            <div id="inventory" class="grid grid-cols-2 gap-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+
+        // Данные подарков
+        const gifts = [
+            { name: "Сердечко", value: 15, image: "https://via.placeholder.com/100?text=Сердечко" },
+            { name: "Мишка", value: 15, image: "https://via.placeholder.com/100?text=Мишка" },
+            { name: "Роза", value: 25, image: "https://via.placeholder.com/100?text=Роза" },
+            { name: "Подарок", value: 25, image: "https://via.placeholder.com/100?text=Подарок" },
+            { name: "Торт", value: 50, image: "https://via.placeholder.com/100?text=Торт" },
+            { name: "Букет", value: 50, image: "https://via.placeholder.com/100?text=Букет" },
+            { name: "Ракета", value: 50, image: "https://via.placeholder.com/100?text=Ракета" },
+            { name: "Кубок", value: 100, image: "https://via.placeholder.com/100?text=Кубок" },
+            { name: "Кольцо", value: 100, image: "https://via.placeholder.com/100?text=Кольцо" },
+            { name: "Алмаз", value: 100, image: "https://via.placeholder.com/100?text=Алмаз" },
+            { name: "Шампанское", value: 50, image: "https://via.placeholder.com/100?text=Шампанское" },
+            { name: "Пепе", value: 1200000, image: "https://via.placeholder.com/100?text=Пепе" },
+            { name: "Кнопка с сердечком", value: 200, image: "https://via.placeholder.com/100?text=Кнопка+Сердце" },
+            { name: "Носки", value: 100, image: "https://via.placeholder.com/100?text=Носки" },
+            { name: "Доширак", value: 50, image: "https://via.placeholder.com/100?text=Доширак" },
+            { name: "Кирпич 1 апреля", value: 5000, image: "https://via.placeholder.com/100?text=Кирпич" },
+            { name: "1 мая", value: 100, image: "https://via.placeholder.com/100?text=1+Мая" },
+            { name: "Красная звезда", value: 100, image: "https://via.placeholder.com/100?text=Красная+Звезда" },
+            { name: "Факел свободы", value: 150, image: "https://via.placeholder.com/100?text=Факел" },
+            { name: "Мини-статуя свободы", value: 250, image: "https://via.placeholder.com/100?text=Статуя" },
+            { name: "Орел свободы", value: 5000, image: "https://via.placeholder.com/100?text=Орел" },
+            { name: "Пряник", value: 555, image: "https://via.placeholder.com/100?text=Пряник" }
+        ];
+
+        // Данные кейсов
+        const cases = [
+            {
+                name: "Кейс Новичка",
+                cost: 50,
+                drops: [
+                    { gift: "Сердечко", chance: 0.43 },
+                    { gift: "Мишка", chance: 0.43 },
+                    { gift: "Роза", chance: 0.09 },
+                    { gift: "Подарок", chance: 0.05 }
+                ]
+            },
+            {
+                name: "Кейс Любителя",
+                cost: 150,
+                drops: [
+                    { gift: "Торт", chance: 0.30 },
+                    { gift: "Букет", chance: 0.30 },
+                    { gift: "Ракета", chance: 0.20 },
+                    { gift: "Кнопка с сердечком", chance: 0.15 },
+                    { gift: "Пепе", chance: 0.05 }
+                ]
+            },
+            {
+                name: "Кейс Профессионала",
+                cost: 500,
+                drops: [
+                    { gift: "Кубок", chance: 0.25 },
+                    { gift: "Кольцо", chance: 0.25 },
+                    { gift: "Алмаз", chance: 0.20 },
+                    { gift: "Мини-статуя свободы", chance: 0.20 },
+                    { gift: "Орел свободы", chance: 0.10 }
+                ]
+            },
+            {
+                name: "Кейс Легенды",
+                cost: 2000,
+                drops: [
+                    { gift: "Пряник", chance: 0.30 },
+                    { gift: "Факел свободы", chance: 0.30 },
+                    { gift: "Мини-статуя свободы", chance: 0.20 },
+                    { gift: "Пепе", chance: 0.10 },
+                    { gift: "Кирпич 1 апреля", chance: 0.10 }
+                ]
+            }
+        ];
+
+        // Состояние
+        let starBalance = 1000;
+        let inventory = [];
+
+        // Элементы DOM
+        const starBalanceEl = document.getElementById('star-balance');
+        const openBeginnerCaseBtn = document.getElementById('open-beginner-case');
+        const openAmateurCaseBtn = document.getElementById('open-amateur-case');
+        const openProCaseBtn = document.getElementById('open-pro-case');
+        const openLegendCaseBtn = document.getElementById('open-legend-case');
+        const caseAnimationEl = document.getElementById('case-animation');
+        const caseResultEl = document.getElementById('case-result');
+        const resultImageEl = document.getElementById('result-image');
+        const resultTextEl = document.getElementById('result-text');
+        const inventoryEl = document.getElementById('inventory');
+        const casesSection = document.getElementById('cases-section');
+        const inventorySection = document.getElementById('inventory-section');
+        const showCasesBtn = document.getElementById('show-cases');
+        const showInventoryBtn = document.getElementById('show-inventory');
+
+        // Обновление баланса звезд
+        function updateStarBalance() {
+            starBalanceEl.textContent = starBalance;
+        }
+
+        // Обновление инвентаря
+        function updateInventory() {
+            inventoryEl.innerHTML = '';
+            inventory.forEach(item => {
+                const gift = gifts.find(g => g.name === item);
+                if (gift) {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'bg-gray-700 p-2 rounded flex items-center';
+                    itemEl.innerHTML = `
+                        <img src="${gift.image}" alt="${gift.name}" class="w-12 h-12 mr-2">
+                        <div>
+                            <p>${gift.name}</p>
+                            <p class="text-sm text-gray-400">${gift.value} звезд</p>
+                        </div>
+                    `;
+                    inventoryEl.appendChild(itemEl);
+                }
+            });
+        }
+
+        // Случайный выбор подарка с учетом весов
+        function getRandomGift(caseData) {
+            const rand = Math.random();
+            let cumulative = 0;
+            for (const drop of caseData.drops) {
+                cumulative += drop.chance;
+                if (rand <= cumulative) {
+                    return drop.gift;
+                }
+            }
+            return caseData.drops[0].gift; // Запасной вариант
+        }
+
+        // Открытие кейса
+        function openCase(caseData) {
+            if (starBalance >= caseData.cost) {
+                starBalance -= caseData.cost;
+                updateStarBalance();
+
+                // Показ анимации
+                caseAnimationEl.classList.remove('hidden');
+                caseResultEl.classList.add('hidden');
+                openBeginnerCaseBtn.disabled = true;
+                openAmateurCaseBtn.disabled = true;
+                openProCaseBtn.disabled = true;
+                open
